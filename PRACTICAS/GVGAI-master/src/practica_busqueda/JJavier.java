@@ -15,8 +15,8 @@ public class JJavier extends BaseAgent{
     private ArrayList<Types.ACTIONS> lista_acciones; // Conjunto de acciones posibles
     private Random generador;
     
-    public JJavier(StateObservation so, ElapsedCpuTimer elapsedTimer){
-        super(so, elapsedTimer);
+    public JJavier(StateObservation stateObservation, ElapsedCpuTimer elapsedTimer){
+        super(stateObservation, elapsedTimer);
         generador = new Random();
         
         lista_acciones = new ArrayList();
@@ -39,7 +39,7 @@ public class JJavier extends BaseAgent{
         // Estar al lado de una gema -> +100
         // Si ya he cogido todas las gemas y estoy en la salida -> + INF
         // Si ya he cogido todas las gemas y estoy al lado de la salida -> +1000
-        
+
         // Scores
         final int cerca_enemigo = -50;
         final int cerca_pared = -10;
@@ -101,7 +101,7 @@ public class JJavier extends BaseAgent{
                     else{
                         if (salida.getY() < jugador_antiguo.getY()) // salida arriba
                             mejor_accion = Types.ACTIONS.ACTION_UP;
-                        else
+                        else                                        // salida abajo
                             mejor_accion = Types.ACTIONS.ACTION_DOWN;
                     }
 
