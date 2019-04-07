@@ -33,7 +33,8 @@ public class Node {
         NodeComparator comparator = new NodeComparator();
         int max_x = stateObs.getObservationGrid().length;
         int max_y = stateObs.getObservationGrid()[0].length;
-        boolean Visited[][] = new boolean[max_x][max_y];                                // CLOSED list
+        ArrayList<Vector2d> nodesColindantToEnemies = new ArrayList<Vector2d>();
+        boolean Visited[][] = new boolean[max_x][max_y];                        // CLOSED list
         PriorityQueue<Node> toVisit = new PriorityQueue<Node>(comparator);      // OPEN list
 
         for (int i = 0; i < max_x ; ++i)
@@ -50,6 +51,8 @@ public class Node {
         {
 
         }
+
+        return nodesColindantToEnemies;
     }
 }
 
