@@ -42,12 +42,14 @@ public class JJavier extends BaseAgent{
             int x = enem.get(1).getX();
             int y = enem.get(1).getY();
 
-            Node ini_node = new Node(x,y,0,0,null);
+            //Node ini_node = new Node(x,y,0,null,null, null, stateObs);
+            Observation obs = new Observation(2,2,null);
+            getPlayer(stateObs).getManhattanDistance(obs);
         }
 
-        System.out.println(enemies[0].get(1));
-        System.out.println(enemies[1].get(1));
-        //System.out.println(stateObs.getObservationGrid()[1][1].get(0).obsID);
+        //System.out.println(enemies[0].get(1));
+        //System.out.println(enemies[1].get(1));
+        System.out.println(stateObs.getObservationGrid()[1][6].getClass());
         return  enemies[0];
     }
 
@@ -58,6 +60,6 @@ public class JJavier extends BaseAgent{
         //System.out.println(getPlayer(stateObs).getManhattanDistance(getExit(stateObs)));
         getBoxesFreeEnemies(stateObs);
 
-        return Types.ACTIONS.ACTION_NIL;
+        return Types.ACTIONS.ACTION_LEFT;
     }
 }
