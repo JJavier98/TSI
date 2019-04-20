@@ -2,6 +2,7 @@ package practica_busqueda;
 
 import core.game.StateObservation;
 import ontology.Types;
+import org.jetbrains.annotations.NotNull;
 import tools.ElapsedCpuTimer;
 import tools.Vector2d;
 
@@ -67,19 +68,14 @@ public class Node {
         // Assigment of base h
         h = objective_distance;
 
-        // Designate if the box could free an enemy
+         // Designate if the box houses an enemy
+        im_an_enemy = false;
         free_an_enemy = false;
-        for (Vector2d freeEnemy : freeEnemies)
-        {
-            if(freeEnemy.x == obs.getX() && freeEnemy.y == obs.getY())
-            {
-                free_an_enemy = true;
-            }
-        }
-
-        // Identify if the box is near an enemy
         i_could_be_an_enemy = false;
-        if( stateObs.getObservationGrid()[_x+1][_y].get(0).itype == 11 ||
+        if(obs.getType() == ObservationType.BAT || obs.getType() == ObservationType.SCORPION)
+            im_an_enemy = true;
+        else // Identify if the box is near an enemy
+            if( stateObs.getObservationGrid()[_x+1][_y].get(0).itype == 11 ||
             stateObs.getObservationGrid()[_x+1][_y].get(0).itype == 10 ||
             stateObs.getObservationGrid()[_x-1][_y].get(0).itype == 11 ||
             stateObs.getObservationGrid()[_x-1][_y].get(0).itype == 10 ||
@@ -87,19 +83,25 @@ public class Node {
             stateObs.getObservationGrid()[_x][_y+1].get(0).itype == 10 ||
             stateObs.getObservationGrid()[_x][_y-1].get(0).itype == 11 ||
             stateObs.getObservationGrid()[_x][_y-1].get(0).itype == 10)
-        {
-            i_could_be_an_enemy = true;
-        }
+            {
+                i_could_be_an_enemy = true;
+            }
+            else
+            {
+                // Designate if the box could free an enemy
+                for (Vector2d freeEnemy : freeEnemies)
+                {
+                    if(freeEnemy.x == obs.getX() && freeEnemy.y == obs.getY())
+                    {
+                        free_an_enemy = true;
+                    }
+                }
+            }
 
         // Indicate if there is a rock on top
         rock_on_top = false;
         if(stateObs.getObservationGrid()[_x][_y-1].get(0).itype == 7)
             rock_on_top = true;
-
-        // Designate if the box houses an enemy
-        im_an_enemy = false;
-        if(obs.getType() == ObservationType.BAT || obs.getType() == ObservationType.SCORPION)
-            im_an_enemy = true;
 
         // Increase h according to some events
         if(type == ObservationType.WALL ||
@@ -128,6 +130,98 @@ public class Node {
         free_an_enemy = n.free_an_enemy;
         objective_distance = n.objective_distance;
         im_an_enemy = n.im_an_enemy;
+    }
+    public void actualizar(Observation objective, ArrayList<Vector2d> freeEnemies, StateObservation stateObs)
+    {
+    	int _x = obs.getX();
+    	int _y = obs.getY();
+        // Designate box type
+        ObservationType type = ObservationType.BAT;
+        if(stateObs.getObservationGrid()[_x][_y].isEmpty())
+            type = null;
+        else {
+            int itype = stateObs.getObservationGrid()[_x][_y].get(0).itype;
+            switch (itype) {
+                case (0):
+                    type = ObservationType.WALL;
+                    break;
+                case (4):
+                    type = ObservationType.GROUND;
+                    break;
+                case (7):
+                    type = ObservationType.BOULDER;
+                    break;
+                case (6):
+                    type = ObservationType.GEM;
+                    break;
+                case (11):
+                    type = ObservationType.BAT;
+                    break;
+                case (10):
+                    type = ObservationType.SCORPION;
+                    break;
+                case (1):
+                    type = ObservationType.PLAYER;
+                    break;
+                case (5):
+                    type = ObservationType.EXIT;
+                    break;
+            }
+        }
+        // Indicate coordinates and type of the current box
+        Observation observ = getObs();
+        obs = new Observation(observ.getX(), observ.getY(), type);
+        // Calculate the very first h
+        objective_distance = obs.getManhattanDistance(objective);
+        // Assigment of base h
+        h = objective_distance;
+
+         // Designate if the box houses an enemy
+        im_an_enemy = false;
+        free_an_enemy = false;
+        i_could_be_an_enemy = false;
+        if(obs.getType() == ObservationType.BAT || obs.getType() == ObservationType.SCORPION)
+            im_an_enemy = true;
+        else // Identify if the box is near an enemy
+            if( stateObs.getObservationGrid()[_x+1][_y].get(0).itype == 11 ||
+                stateObs.getObservationGrid()[_x+1][_y].get(0).itype == 10 ||
+                stateObs.getObservationGrid()[_x-1][_y].get(0).itype == 11 ||
+                stateObs.getObservationGrid()[_x-1][_y].get(0).itype == 10 ||
+                stateObs.getObservationGrid()[_x][_y+1].get(0).itype == 11 ||
+                stateObs.getObservationGrid()[_x][_y+1].get(0).itype == 10 ||
+                stateObs.getObservationGrid()[_x][_y-1].get(0).itype == 11 ||
+                stateObs.getObservationGrid()[_x][_y-1].get(0).itype == 10)
+            {
+                i_could_be_an_enemy = true;
+            }
+            else
+            {
+                // Designate if the box could free an enemy
+                for (Vector2d freeEnemy : freeEnemies)
+                {
+                    if(freeEnemy.x == obs.getX() && freeEnemy.y == obs.getY())
+                    {
+                        free_an_enemy = true;
+                    }
+                }
+            }
+
+        // Indicate if there is a rock on top
+        rock_on_top = false;
+        if(stateObs.getObservationGrid()[_x][_y-1].get(0).itype == 7)
+            rock_on_top = true;
+
+        // Increase h according to some events
+        if(type == ObservationType.WALL ||
+                (type == ObservationType.EXIT && objective.getType() == ObservationType.GEM) ||
+                type == ObservationType.BOULDER ||
+                im_an_enemy)
+            h += 90;
+        if(rock_on_top)
+            h += 10;
+        if(free_an_enemy || i_could_be_an_enemy)
+            h += 50;
+        f = g+h;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -194,9 +288,7 @@ public class Node {
         children.add(child);
     }
 
-    public void setObs(Observation obs) {
-        this.obs = obs;
-    }
+    public void setObs(Observation obs) { this.obs = obs; }
 
     public void setF(int f) {
         this.f = f;
@@ -234,7 +326,7 @@ public class Node {
     ////////////////////////////////////////////////// BFS /////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public ArrayList<Vector2d> expandToSand(Node node_ini, StateObservation stateObs)
+    public ArrayList<Vector2d> expandToSand(StateObservation stateObs)
     {
         NodeComparator comparator = new NodeComparator();
         int max_x = stateObs.getObservationGrid().length;
@@ -251,7 +343,7 @@ public class Node {
             }
         }
 
-        toVisit.add(node_ini);
+        toVisit.add(this);
 
         while(!toVisit.isEmpty())
         {
@@ -270,15 +362,15 @@ public class Node {
                     toVisit.add(new Node(x, y, 0, null, null, null, stateObs));
                 x = n.getObs().getX();
                 y = n.getObs().getY()-1;
-                if(x < max_x && !Visited[x][y])
+                if(y >= 0 && !Visited[x][y])
                     toVisit.add(new Node(x, y, 0, null, null, null, stateObs));
                 x = n.getObs().getX()-1;
                 y = n.getObs().getY();
-                if(x < max_x && !Visited[x][y])
+                if(x >= 0 && !Visited[x][y])
                     toVisit.add(new Node(x, y, 0, null, null, null, stateObs));
                 x = n.getObs().getX();
                 y = n.getObs().getY()+1;
-                if(x < max_x && !Visited[x][y])
+                if(y < max_y && !Visited[x][y])
                     toVisit.add(new Node(x, y, 0, null, null, null, stateObs));
             }
             Visited[n.getObs().getX()][n.getObs().getY()] = true;

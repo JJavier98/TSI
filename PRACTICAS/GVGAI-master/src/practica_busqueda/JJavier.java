@@ -62,4 +62,56 @@ public class JJavier extends BaseAgent{
 
         return Types.ACTIONS.ACTION_LEFT;
     }
+
+    public ArrayList<Vector2d> pathFinding(StateObservation stateObs)
+    {
+        NodeComparator comparator = new NodeComparator();
+        int max_x = stateObs.getObservationGrid().length;
+        int max_y = stateObs.getObservationGrid()[0].length;
+        ArrayList<Vector2d> nodesColindantToEnemy = new ArrayList<Vector2d>();
+        boolean Visited[][] = new boolean[max_x][max_y];                                  // CLOSED list
+        PriorityQueue<Node> toVisit = new PriorityQueue<Node>(comparator);                // OPEN list
+
+        for (int i = 0; i < max_x ; ++i)
+        {
+            for (int j = 0 ; j < max_y ; ++j)
+            {
+                Visited[i][j] = false;
+            }
+        }
+
+        toVisit.add(this);
+
+        while(!toVisit.isEmpty())
+        {
+            Node n = toVisit.poll();
+            if( (n.getObs().getType() == ObservationType.GROUND)  ||
+                (n.getObs().getType() == ObservationType.BOULDER) ||
+                (n.getObs().getType() == ObservationType.WALL))
+            {
+                nodesColindantToEnemy.add(new Vector2d(n.getObs().getX(), n.getObs().getY()));
+            }
+            else
+            {
+                int x = n.getObs().getX()+1;
+                int y = n.getObs().getY();
+                if(x < max_x && !Visited[x][y])
+                    toVisit.add(new Node(x, y, 0, null, null, null, stateObs));
+                x = n.getObs().getX();
+                y = n.getObs().getY()-1;
+                if(y >= 0 && !Visited[x][y])
+                    toVisit.add(new Node(x, y, 0, null, null, null, stateObs));
+                x = n.getObs().getX()-1;
+                y = n.getObs().getY();
+                if(x >= 0 && !Visited[x][y])
+                    toVisit.add(new Node(x, y, 0, null, null, null, stateObs));
+                x = n.getObs().getX();
+                y = n.getObs().getY()+1;
+                if(y < max_y && !Visited[x][y])
+                    toVisit.add(new Node(x, y, 0, null, null, null, stateObs));
+            }
+            Visited[n.getObs().getX()][n.getObs().getY()] = true;
+        }
+        return nodesColindantToEnemy;
+    }
 }
