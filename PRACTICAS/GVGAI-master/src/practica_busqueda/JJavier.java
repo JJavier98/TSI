@@ -4,10 +4,8 @@ import core.game.StateObservation;
 import ontology.Types;
 import tools.ElapsedCpuTimer;
 import java.util.Scanner;
-
 import java.nio.file.Path;
 import java.util.*;
-
 import tools.Vector2d;
 
 import javax.swing.plaf.nimbus.State;
@@ -16,11 +14,14 @@ import javax.swing.plaf.nimbus.State;
     sobre el entorno y asigna varias probabilidades en función de esta información
     a las posibles acciones.
 */
+
 public class JJavier extends BaseAgent{
     private ArrayList<Types.ACTIONS> lista_acciones; // Conjunto de acciones posibles
     private Random generador;
     private ArrayList<Node> path = new ArrayList<Node>();
     private Queue<Types.ACTIONS> movements = new ArrayDeque<Types.ACTIONS>();
+    boolean keep_out = false;
+    boolean print = true;
 
     public JJavier(StateObservation stateObservation, ElapsedCpuTimer elapsedTimer){
         super(stateObservation, elapsedTimer);
@@ -64,25 +65,21 @@ public class JJavier extends BaseAgent{
 
 	public  boolean isAnEnemy(int x, int y, StateObservation stateObs)
 	{
-		ArrayList<Observation>[] enemies = getEnemiesList(stateObs);
+		ArrayList<core.game.Observation> aux = stateObs.getObservationGrid()[x][y];
 
-		for (ArrayList<Observation> v_enem:enemies)
-		{
-			for (Observation enem:v_enem)
-			{
-				if( enem.getX() == x && enem.getY() == y )
-				{
-					return true;
-				}
-			}
-		}
-
-		return false;
+		if(aux.size()>0)
+			return aux.get(0).itype == 10 || aux.get(0).itype == 10;
+		else
+			return false;
 	}
 
     @Override
-    public Types.ACTIONS act(StateObservation stateObs, ElapsedCpuTimer elapsedTimer){
+    public Types.ACTIONS act(StateObservation stateObs, ElapsedCpuTimer elapsedTimer)
+    {
+        if(keep_out)
+            path.clear();
 
+        System.out.println("FFFFFFFFFFFFFIIIIIIIIIIIIIIIIIIINNNNNNNNNNNNNN  1");
 		Types.ACTIONS action_to_do;
     	if(!movements.isEmpty())
     	{
@@ -108,80 +105,141 @@ public class JJavier extends BaseAgent{
 				next_y++;
 			}
 
-			if (roundAnEnemy(next_x, next_y, stateObs) || isAnEnemy(next_x, next_y, stateObs))
+			if (roundAnEnemy(next_x, next_y, stateObs) || isAnEnemy(next_x, next_y, stateObs) )
 			{
 				movements.clear();
 				path.clear();
 				action_to_do = Types.ACTIONS.ACTION_NIL;
 			}
 		}
+        System.out.println("FFFFFFFFFFFFFIIIIIIIIIIIIIIIIIIINNNNNNNNNNNNNN 2");
 
-		if(path.isEmpty())
+		if(path.isEmpty() && movements.isEmpty())
 		{
-			// System.out.println("HE LLEGADO AQUÍ 3");
-			// System.out.println(getRemainingGems(stateObs));
-			if(getRemainingGems(stateObs) > 0)
+			if(getRemainingGems(stateObs) != 0)
 			{
-				// System.out.println("HE LLEGADO AQUÍ 4");
-				ArrayList<ArrayList<Node>> multiPaths = new ArrayList<ArrayList<Node>>();
-				for (Observation gem: getGemsList(stateObs))
-				{
-					multiPaths.add(pathFinding(gem, stateObs));
-				}
+				
+				ArrayList<Observation> gems = getGemsList(stateObs);
+				boolean fin = false;
 
-				boolean containsRockOnTop = false;
-				boolean perfectPath = false;
-				int indexPerfectPath = 0;
-				for (int i = 0; i < multiPaths.size() && !perfectPath; i++)
+				while (!fin)
 				{
-					for (int j = 0; j < multiPaths.get(i).size() && !containsRockOnTop; j++)
-					{
-						if(multiPaths.get(i).get(j).isRock_on_top())
-							containsRockOnTop = true; // break
+                    int min_dist = 999;
+                    Observation chosen_gem = gems.get(0);
+                    System.out.println("buclaso 2");
+					for (Observation gem : gems) {
+						int new_dist = getPlayer(stateObs).getManhattanDistance(gem);
+						if (new_dist < min_dist) {
+							chosen_gem = gem;
+							min_dist = new_dist;
+						}
 					}
-					if(!containsRockOnTop)
-					{
-						perfectPath = true; // break
-						indexPerfectPath = i;
-					}
+					path = pathFinding(chosen_gem, stateObs);
+					gems.remove(chosen_gem);
+					if (path != null)
+						fin = true;
 				}
-				// System.out.println("HE LLEGADO AQUÍ 1");
-				path = multiPaths.get(indexPerfectPath);
 			}
+            else
+            {
+                path = pathFinding(getExit(stateObs), stateObs);
+            }
 		}
-		else
-		{
-			// System.out.println("HE LLEGADO AQUÍ 2");
-			path = pathFinding(getExit(stateObs), stateObs);
-		}
+        System.out.println("FFFFFFFFFFFFFIIIIIIIIIIIIIIIIIIINNNNNNNNNNNNNN 3");
 
-		if(movements.isEmpty())
+        if(keep_out)
+        {
+            Node n_next = path.get(0);
+            int x_player = getPlayer(stateObs).getX();
+			int y_player = getPlayer(stateObs).getY();
+
+            if(n_next.getObs().getX() != x_player -1 &&
+					n_next.getObs().getX() != x_player +1)
+			{
+				movements.clear();
+				boolean fixed = false;
+
+				while (!fixed) {
+					if (x_player + 1 < stateObs.getObservationGrid().length) {
+						ArrayList<core.game.Observation> aux = stateObs.getObservationGrid()[x_player + 1][y_player];
+						if (aux.size() > 0) {
+							if (aux.get(0).itype != 0 && aux.get(0).itype != 7 &&
+									aux.get(0).itype != 10 && aux.get(0).itype != 11) {
+								movements.add(Types.ACTIONS.ACTION_RIGHT);
+								movements.add(Types.ACTIONS.ACTION_RIGHT);
+								fixed = true;
+							}
+						} else {
+							movements.add(Types.ACTIONS.ACTION_RIGHT);
+							movements.add(Types.ACTIONS.ACTION_RIGHT);
+							fixed = true;
+						}
+					}
+
+					if (x_player - 1 < stateObs.getObservationGrid().length && !fixed) {
+						ArrayList<core.game.Observation> aux = stateObs.getObservationGrid()[x_player - 1][y_player];
+						if (aux.size() > 0) {
+							if (aux.get(0).itype != 0 && aux.get(0).itype != 7 &&
+									aux.get(0).itype != 10 && aux.get(0).itype != 11) {
+								movements.add(Types.ACTIONS.ACTION_RIGHT);
+								movements.add(Types.ACTIONS.ACTION_RIGHT);
+								fixed = true;
+							}
+						} else {
+							movements.add(Types.ACTIONS.ACTION_RIGHT);
+							movements.add(Types.ACTIONS.ACTION_RIGHT);
+							fixed = true;
+						}
+					}
+
+					if (!fixed)
+					{
+						movements.add(Types.ACTIONS.ACTION_DOWN);
+						y_player--;
+					}
+				}
+			}
+        }
+
+		for (Node n:path)
+		{
+			System.out.println(n.getObs().getX());
+			System.out.println(n.getObs().getY());
+            System.out.println();
+		}
+        System.out.println("FFFFFFFFFFFFFIIIIIIIIIIIIIIIIIIINNNNNNNNNNNNNN 4");
+
+		if(movements.isEmpty() && !path.isEmpty())
 		{
 			int x_player = getPlayer(stateObs).getX();
 			int y_player = getPlayer(stateObs).getY();
-			//////////////////////////////////// FIX ////////////////////////////////////////////////
-			// System.out.println(path.size());
-			/////////////////////////////////////////////////////////////////////////////////////////
+			double x_look = stateObs.getAvatarOrientation().x;
+			double y_look = stateObs.getAvatarOrientation().y;
 			int x_box = path.get(0).getObs().getX();
 			int y_box = path.get(0).getObs().getY();
+			//path.remove(0);
 
 			if (x_box < x_player)            // MOVE TO THE LEFT
 			{
-				if (stateObs.getAvatarOrientation() == new Vector2d(-1, 0))      // LOOKS TO THE LEFT
+				if (stateObs.getAvatarOrientation().x == -1 &&
+                    stateObs.getAvatarOrientation().y == 0)      // LOOKS TO THE LEFT
 				{
 					movements.add(Types.ACTIONS.ACTION_LEFT);
 				}
-                else if (stateObs.getAvatarOrientation() == new Vector2d(1, 0)) // LOOKS TO THE RIGHT
-				{
-					movements.add(Types.ACTIONS.ACTION_LEFT);
-					movements.add(Types.ACTIONS.ACTION_LEFT);
-				}
-                else if (stateObs.getAvatarOrientation() == new Vector2d(0, -1)) // LOOKS TO THE TOP
+                else if (stateObs.getAvatarOrientation().x == 1 &&
+                    stateObs.getAvatarOrientation().y == 0) // LOOKS TO THE RIGHT
 				{
 					movements.add(Types.ACTIONS.ACTION_LEFT);
 					movements.add(Types.ACTIONS.ACTION_LEFT);
 				}
-                else if (stateObs.getAvatarOrientation() == new Vector2d(0, 1)) // LOOKS TO THE BOTTOM
+                else if (stateObs.getAvatarOrientation().x == 0 &&
+                    stateObs.getAvatarOrientation().y == -1) // LOOKS TO THE TOP
+				{
+					movements.add(Types.ACTIONS.ACTION_LEFT);
+					movements.add(Types.ACTIONS.ACTION_LEFT);
+				}
+                else if (stateObs.getAvatarOrientation().x == 0 &&
+                    stateObs.getAvatarOrientation().y == 1) // LOOKS TO THE BOTTOM
 				{
                     movements.add(Types.ACTIONS.ACTION_LEFT);
 					movements.add(Types.ACTIONS.ACTION_LEFT);
@@ -189,21 +247,25 @@ public class JJavier extends BaseAgent{
 			}
             else if (x_box > x_player)        // MOVE TO THE RIGHT
 			{
-				if (stateObs.getAvatarOrientation() == new Vector2d(-1, 0))      // LOOKS TO THE LEFT
+				if (stateObs.getAvatarOrientation().x == -1 &&
+                    stateObs.getAvatarOrientation().y == 0)      // LOOKS TO THE LEFT
 				{
                     movements.add(Types.ACTIONS.ACTION_RIGHT);
                     movements.add(Types.ACTIONS.ACTION_RIGHT);
 				}
-                else if (stateObs.getAvatarOrientation() == new Vector2d(1, 0)) // LOOKS TO THE RIGHT
+                else if (stateObs.getAvatarOrientation().x == 1 &&
+                    stateObs.getAvatarOrientation().y == 0) // LOOKS TO THE RIGHT
 				{
                     movements.add(Types.ACTIONS.ACTION_RIGHT);
 				}
-                else if (stateObs.getAvatarOrientation() == new Vector2d(0, -1)) // LOOKS TO THE TOP
+                else if (stateObs.getAvatarOrientation().x == 0 &&
+                    stateObs.getAvatarOrientation().y == -1) // LOOKS TO THE TOP
 				{
                     movements.add(Types.ACTIONS.ACTION_RIGHT);
                     movements.add(Types.ACTIONS.ACTION_RIGHT);
 				}
-                else if (stateObs.getAvatarOrientation() == new Vector2d(0, 1)) // LOOKS TO THE BOTTOM
+                else if (stateObs.getAvatarOrientation().x == 0 &&
+                    stateObs.getAvatarOrientation().y == 1) // LOOKS TO THE BOTTOM
 				{
                     movements.add(Types.ACTIONS.ACTION_RIGHT);
                     movements.add(Types.ACTIONS.ACTION_RIGHT);
@@ -211,21 +273,25 @@ public class JJavier extends BaseAgent{
 			}
             else if (y_box < y_player)        // MOVE TO THE TOP
 			{
-				if (stateObs.getAvatarOrientation() == new Vector2d(-1, 0))      // LOOKS TO THE LEFT
+				if (stateObs.getAvatarOrientation().x == -1 &&
+                    stateObs.getAvatarOrientation().y == 0)      // LOOKS TO THE LEFT
 				{
                     movements.add(Types.ACTIONS.ACTION_UP);
                     movements.add(Types.ACTIONS.ACTION_UP);
 				}
-                else if (stateObs.getAvatarOrientation() == new Vector2d(1, 0)) // LOOKS TO THE RIGHT
+                else if (stateObs.getAvatarOrientation().x == 1 &&
+                    stateObs.getAvatarOrientation().y == 0) // LOOKS TO THE RIGHT
 				{
                     movements.add(Types.ACTIONS.ACTION_UP);
                     movements.add(Types.ACTIONS.ACTION_UP);
 				}
-                else if (stateObs.getAvatarOrientation() == new Vector2d(0, -1)) // LOOKS TO THE TOP
+                else if (stateObs.getAvatarOrientation().x == 0 &&
+                    stateObs.getAvatarOrientation().y == -1) // LOOKS TO THE TOP
 				{
                     movements.add(Types.ACTIONS.ACTION_UP);
 				}
-                else if (stateObs.getAvatarOrientation() == new Vector2d(0, 1)) // LOOKS TO THE BOTTOM
+                else if (stateObs.getAvatarOrientation().x == 0 &&
+                    stateObs.getAvatarOrientation().y == 1) // LOOKS TO THE BOTTOM
 				{
                     movements.add(Types.ACTIONS.ACTION_UP);
                     movements.add(Types.ACTIONS.ACTION_UP);
@@ -233,28 +299,35 @@ public class JJavier extends BaseAgent{
 			}
             else if (y_box > y_player)        // MOVE TO THE BOTTOM
 			{
-				if (stateObs.getAvatarOrientation() == new Vector2d(-1, 0))      // LOOKS TO THE LEFT
+				if (stateObs.getAvatarOrientation().x == -1 &&
+                    stateObs.getAvatarOrientation().y == 0)      // LOOKS TO THE LEFT
 				{
                     movements.add(Types.ACTIONS.ACTION_DOWN);
                     movements.add(Types.ACTIONS.ACTION_DOWN);
 				}
-                else if (stateObs.getAvatarOrientation() == new Vector2d(1, 0)) // LOOKS TO THE RIGHT
+                else if (stateObs.getAvatarOrientation().x == 1 &&
+                    stateObs.getAvatarOrientation().y == 0) // LOOKS TO THE RIGHT
 				{
                     movements.add(Types.ACTIONS.ACTION_DOWN);
                     movements.add(Types.ACTIONS.ACTION_DOWN);
 				}
-                else if (stateObs.getAvatarOrientation() == new Vector2d(0, -1)) // LOOKS TO THE TOP
+                else if (stateObs.getAvatarOrientation().x == 0 &&
+                    stateObs.getAvatarOrientation().y == -1) // LOOKS TO THE TOP
 				{
                     movements.add(Types.ACTIONS.ACTION_DOWN);
                     movements.add(Types.ACTIONS.ACTION_DOWN);
 				}
-                else if (stateObs.getAvatarOrientation() == new Vector2d(0, 1)) // LOOKS TO THE BOTTOM
+                else if (stateObs.getAvatarOrientation().x == 0 &&
+                    stateObs.getAvatarOrientation().y == 1) // LOOKS TO THE BOTTOM
 				{
                     movements.add(Types.ACTIONS.ACTION_DOWN);
 				}
 			}
+            System.out.println("FFFFFFFFFFFFFIIIIIIIIIIIIIIIIIIINNNNNNNNNNNNNN 5");
 
+			//.out.println(movements);
             Types.ACTIONS last_action = movements.peek();
+           // .out.println(movements);
 
 			for (int i = 1; i < path.size(); i++)
 			{
@@ -264,7 +337,17 @@ public class JJavier extends BaseAgent{
 				}
 				else if(last_action == Types.ACTIONS.ACTION_UP)
 				{
-					y_player--;
+					if(y_player-2 >= 0)
+					{
+						ArrayList<core.game.Observation> aux = stateObs.getObservationGrid()[x_player][y_player-2];
+						if(aux.size() > 0)
+						{
+							if(aux.get(0).itype != 7)
+							{
+								y_player--;
+							}
+						}
+					}
 				}
 				else if(last_action == Types.ACTIONS.ACTION_LEFT)
 				{
@@ -274,6 +357,8 @@ public class JJavier extends BaseAgent{
 				{
 					x_player++;
 				}
+				System.out.println(x_player);
+				System.out.println(y_player);
 
 				x_box = path.get(i).getObs().getX();
 				y_box = path.get(i).getObs().getY();
@@ -372,9 +457,17 @@ public class JJavier extends BaseAgent{
 				}
 			}
 		}
-
+        System.out.println("FFFFFFFFFFFFFIIIIIIIIIIIIIIIIIIINNNNNNNNNNNNNN 6");
+		if(print) {
+			System.out.println(movements);
+			System.out.println();
+			print = false;
+		}
 		action_to_do = movements.poll();
-		boolean keep_out = false;
+        if(movements.isEmpty()) {
+			path.clear();
+			print = true;
+		}
 
 		int next_x = getPlayer(stateObs).getX();
 		int next_y = getPlayer(stateObs).getY();
@@ -401,12 +494,11 @@ public class JJavier extends BaseAgent{
 		{
 			movements.clear();
 			path.clear();
-
-			if(keep_out)
-			{
-
-			}
 		}
+        else
+        {
+            keep_out = false;
+        }
 
         return action_to_do;
     }
@@ -432,21 +524,14 @@ public class JJavier extends BaseAgent{
 
         Node[][] Visited = new Node[max_x][max_y];                           // CLOSED list
         PriorityQueue<Node> toVisit = new PriorityQueue<Node>(comparator);   // OPEN list
-        for (int i = 0; i < max_x; i++) {
-            for (int j = 0; j < max_y; j++) {
-                Visited[i][j] = null;
-            }
-        }
 
         toVisit.add(n_inicial);
 
 		boolean objectiveFound = false;
-		while(!objectiveFound)
+		while(!objectiveFound && !toVisit.isEmpty())
         {
 
-        	//System.out.println(toVisit.size());
             Node n_current = toVisit.poll();
-			//System.out.println(toVisit.size());
 
             if( n_current.getObs().getX() == objective.getX()  &&
                 n_current.getObs().getY() == objective.getY())
@@ -459,107 +544,131 @@ public class JJavier extends BaseAgent{
             	// RIGHT
                 int x = n_current.getObs().getX()+1;
                 int y = n_current.getObs().getY();
-                if(x < max_x && Visited[x][y] == null)
-                {
-                    Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
-                    toVisit.add(child);
-					//System.out.println("a");
-                    //n_current.addChildren(child);
-                }
-                else if(x < max_x && Visited[x][y] != null)
-                {
-                    Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
-                    if(Visited[x][y].getF() > child.getF())
-                    {
-                        toVisit.add(child);
-						//System.out.println("b");
-                        //n_current.addChildren(child);
-                    }
-                }
+                if( x < max_x )
+                    if( stateObs.getObservationGrid()[x][y].size() > 0 )
+                        if( stateObs.getObservationGrid()[x][y].get(0).itype != 0 &&
+                            stateObs.getObservationGrid()[x][y].get(0).itype != 7)
+                        {
+                            if(Visited[x][y] == null)
+                            {
+                                Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
+                                toVisit.add(child);
+                                //n_current.addChildren(child);
+                            }
+                            else
+                            {
+                                Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
+                                if(Visited[x][y].getF() > child.getF())
+                                {
+                                    toVisit.add(child);
+                                    //n_current.addChildren(child);
+                                }
+                            }
+                        }
 
                 // TOP
                 x = n_current.getObs().getX();
                 y = n_current.getObs().getY()-1;
-                if(y >= 0 && Visited[x][y] == null)
-                {
-                    Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
-                    toVisit.add(child);
-                    //n_current.addChildren(child);
-                }
-                else if(y >= 0 && Visited[x][y] != null)
-                {
-                    Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
-                    if(Visited[x][y].getF() > child.getF())
-                    {
-                        toVisit.add(child);
-                        //n_current.addChildren(child);
-                    }
-                }
+                if( y >= 0 )
+                    if( stateObs.getObservationGrid()[x][y].size() > 0 )
+                        if( stateObs.getObservationGrid()[x][y].get(0).itype != 0 &&
+                            stateObs.getObservationGrid()[x][y].get(0).itype != 7)
+                        {
+                            if(Visited[x][y] == null)
+                            {
+                                Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
+                                toVisit.add(child);
+                                //n_current.addChildren(child);
+                            }
+                            else
+                            {
+                                Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
+                                if(Visited[x][y].getF() > child.getF())
+                                {
+                                    toVisit.add(child);
+                                    //n_current.addChildren(child);
+                                }
+                            }
+                        }
 
                 // LEFT
                 x = n_current.getObs().getX()-1;
                 y = n_current.getObs().getY();
-                if(x >= 0 && Visited[x][y] == null)
-                {
-                    Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
-                    toVisit.add(child);
-                    //n_current.addChildren(child);
-                }
-                else if(x >= 0 && Visited[x][y] != null)
-                {
-                    Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
-                    if(Visited[x][y].getF() > child.getF())
-                    {
-                        toVisit.add(child);
-                        //n_current.addChildren(child);
-                    }
-                }
+                if( x >= 0 )
+                    if( stateObs.getObservationGrid()[x][y].size() > 0 )
+                        if( stateObs.getObservationGrid()[x][y].get(0).itype != 0 &&
+                            stateObs.getObservationGrid()[x][y].get(0).itype != 7)
+                        {
+                            if(Visited[x][y] == null)
+                            {
+                                Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
+                                toVisit.add(child);
+                                //n_current.addChildren(child);
+                            }
+                            else
+                            {
+                                Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
+                                if(Visited[x][y].getF() > child.getF())
+                                {
+                                    toVisit.add(child);
+                                    //n_current.addChildren(child);
+                                }
+                            }
+                        }
 
 				// BOTTOM
                 x = n_current.getObs().getX();
                 y = n_current.getObs().getY()+1;
-                if(y < max_y && Visited[x][y] == null)
-                {
-                    Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
-                    toVisit.add(child);
-                    //n_current.addChildren(child);
-                }
-                else if(y < max_y && Visited[x][y] != null)
-                {
-                    Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
-                    if(Visited[x][y].getF() > child.getF())
-                    {
-                        toVisit.add(child);
-                        //n_current.addChildren(child);
-                    }
-                }
-
+                if( y < max_y )
+                    if( stateObs.getObservationGrid()[x][y].size() > 0 )
+                        if( stateObs.getObservationGrid()[x][y].get(0).itype != 0 &&
+                            stateObs.getObservationGrid()[x][y].get(0).itype != 7)
+                        {
+                            if(Visited[x][y] == null)
+                            {
+                                Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
+                                toVisit.add(child);
+                                //n_current.addChildren(child);
+                            }
+                            else
+                            {
+                                Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
+                                if(Visited[x][y].getF() > child.getF())
+                                {
+                                    toVisit.add(child);
+                                    //n_current.addChildren(child);
+                                }
+                            }
+                        }
             }
             if(Visited[n_current.getObs().getX()][n_current.getObs().getY()] != null)
             {
-				if (Visited[n_current.getObs().getX()][n_current.getObs().getY()].getF() < n_current.getF())
+				if (Visited[n_current.getObs().getX()][n_current.getObs().getY()].getF() > n_current.getF())
 					Visited[n_current.getObs().getX()][n_current.getObs().getY()] = n_current;
 			}
             else
 				Visited[n_current.getObs().getX()][n_current.getObs().getY()] = n_current;
 
-			Scanner sc = new Scanner(System.in);
 			//int n = sc.nextInt();
         }
 
 		Deque<Node> stack = new ArrayDeque<Node>();
-		Node aux = new Node(n_fin);
+		if(objectiveFound) {
+			Node aux = new Node(n_fin);
 
-		while(aux.getParent() != null)
-		{
-			stack.push(aux);
-			aux = aux.getParent();
-		}
+			while (aux.getParent() != null) {
+				stack.push(aux);
+				aux = aux.getParent();
+			}
 
-		while (!stack.isEmpty())
-		{
-			path.add(stack.pop());
+			while (!stack.isEmpty()) {
+				System.out.println("eh");
+				Node n = (stack.pop());
+				path.add(n);
+			}
+			return path;
 		}
-        return path;
+        else
+            return null;
     }
 }

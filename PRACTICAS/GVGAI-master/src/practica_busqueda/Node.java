@@ -75,20 +75,14 @@ public class Node {
         if(obs.getType() == ObservationType.BAT || obs.getType() == ObservationType.SCORPION)
             im_an_enemy = true;
         else // Identify if the box is near an enemy
-            if(roundAnEnemy(_x, _y, enemies, stateObs))
+            /*if(roundAnEnemy(_x, _y, enemies, stateObs))
             {
                 i_could_be_an_enemy = true;
             }
-            else if(freeEnemies != null)
+            else */if(freeEnemies != null)
             {
-                // Designate if the box could free an enemy
-                for (Vector2d freeEnemy : freeEnemies)
-                {
-                    if(freeEnemy.x == obs.getX() && freeEnemy.y == obs.getY())
-                    {
-                        free_an_enemy = true;
-                    }
-                }
+                Vector2d aux = new Vector2d(_x, _y);
+                free_an_enemy = freeEnemies.contains(aux);
             }
 
         // Indicate if there is a rock on top
@@ -96,13 +90,12 @@ public class Node {
             rock_on_top = (stateObs.getObservationGrid()[_x][_y-1].get(0).itype == 7);
 
         // Increase h according to some events
-        if(type == ObservationType.WALL ||
-                (type == ObservationType.EXIT && objective.getType() == ObservationType.GEM) ||
-                type == ObservationType.BOULDER ||
+        if( type == ObservationType.WALL ||
+            type == ObservationType.BOULDER ||
                 im_an_enemy)
             h += 90;
         if(rock_on_top)
-            h += 10;
+            h += 50;
         if(free_an_enemy || i_could_be_an_enemy)
             h += 50;
         f = g+h;
@@ -147,18 +140,12 @@ public class Node {
 
     public  boolean isAnEnemy(int x, int y, ArrayList<Observation>[] enemies, StateObservation stateObs)
     {
-        for (ArrayList<Observation> v_enem:enemies)
-        {
-            for (Observation enem:v_enem)
-            {
-                if( enem.getX() == x && enem.getY() == y )
-                {
-                    return true;
-                }
-            }
-        }
+        ArrayList<core.game.Observation> aux = stateObs.getObservationGrid()[x][y];
 
-        return false;
+        if(aux.size()>0)
+            return aux.get(0).itype == 10 || aux.get(0).itype == 10;
+        else
+            return false;
     }
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////// GETTERS ///////////////////////////////////////////////////////////
@@ -306,19 +293,9 @@ public class Node {
         NodeComparator comparator = new NodeComparator();
         int max_x = stateObs.getObservationGrid().length;
         int max_y = stateObs.getObservationGrid()[0].length;
-        // System.out.println(max_x);
-        // System.out.println(max_y);
         ArrayList<Vector2d> nodesColindantToEnemy = new ArrayList<Vector2d>();
-        boolean Visited[][] = new boolean[max_x][max_y];                                  // CLOSED list
+        boolean Visited[][] = new boolean[max_x][max_y];                               // CLOSED list
         PriorityQueue<Node> toVisit = new PriorityQueue<Node>(comparator);                // OPEN list
-
-        for (int i = 0; i < max_x ; ++i)
-        {
-            for (int j = 0 ; j < max_y ; ++j)
-            {
-                Visited[i][j] = false;
-            }
-        }
 
         toVisit.add(this);
 
@@ -336,8 +313,6 @@ public class Node {
             {
                 int x = n.getObs().getX()+1;
                 int y = n.getObs().getY();
-                // System.out.println(x);
-                // System.out.println(y);
                 if(x < max_x && !Visited[x][y])
                     toVisit.add(new Node(x, y, 0, null, null, null, enemies, stateObs));
                 x = n.getObs().getX();
