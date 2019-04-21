@@ -23,6 +23,7 @@ public class Node {
 
     public Node(int _x, int _y, int _g, Node _parent, Observation objective, ArrayList<Vector2d> freeEnemies, ArrayList<Observation>[] enemies, StateObservation stateObs)
     {
+        
         // Designate box type
         ObservationType type = ObservationType.BAT;
         if(stateObs.getObservationGrid()[_x][_y].isEmpty())
