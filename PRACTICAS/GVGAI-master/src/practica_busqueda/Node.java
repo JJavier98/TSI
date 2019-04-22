@@ -21,7 +21,7 @@ public class Node {
     private boolean i_could_be_an_enemy;// this position could be occupied by an enemy
     private boolean rock_on_top;        // there is a rock on top of this box
 
-    public Node(int _x, int _y, int _g, Node _parent, Observation objective, ArrayList<Vector2d> freeEnemies, ArrayList<Observation>[] enemies, StateObservation stateObs)
+    public Node(int _x, int _y, int _g, Node _parent, Observation objective, Set<String> freeEnemies, ArrayList<Observation>[] enemies, StateObservation stateObs)
     {
         
         // Designate box type
@@ -74,15 +74,10 @@ public class Node {
         i_could_be_an_enemy = false;
         if(obs.getType() == ObservationType.BAT || obs.getType() == ObservationType.SCORPION)
             im_an_enemy = true;
-        else // Identify if the box is near an enemy
-            /*if(roundAnEnemy(_x, _y, enemies, stateObs))
+        else if(freeEnemies != null)
             {
-                i_could_be_an_enemy = true;
-            }
-            else */if(freeEnemies != null)
-            {
-                Vector2d aux = new Vector2d(_x, _y);
-                free_an_enemy = freeEnemies.contains(aux);
+                free_an_enemy = freeEnemies.contains(_x + ":" + _y);
+                //System.out.println(free_an_enemy);
             }
 
         // Indicate if there is a rock on top
@@ -95,9 +90,9 @@ public class Node {
                 im_an_enemy)
             h += 90;
         if(rock_on_top)
-            h += 50;
+            h += 5;
         if(free_an_enemy || i_could_be_an_enemy)
-            h += 50;
+            h += 20;
         f = g+h;
         parent = _parent;
     }
@@ -229,12 +224,12 @@ public class Node {
 
     public void setFree_an_enemy(boolean free_an_enemy) {
         if(this.free_an_enemy)
-            h = h-50;
+            h = h-20;
 
         this.free_an_enemy = free_an_enemy;
 
         if(this.free_an_enemy)
-            h = h+50;
+            h = h+20;
     }
 
     public void setIm_an_enemy(boolean im_an_enemy) {
@@ -249,51 +244,28 @@ public class Node {
 
     public void setI_could_be_an_enemy(boolean i_could_be_an_enemy) {
         if(this.i_could_be_an_enemy)
-            h = h-50;
+            h = h-20;
 
         this.i_could_be_an_enemy = i_could_be_an_enemy;
 
         if(this.i_could_be_an_enemy)
-            h = h+50;
+            h = h+20;
     }
 
     public void setRock_on_top(boolean rock_on_top) {
         this.rock_on_top = rock_on_top;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Node node = (Node) o;
-        return f == node.f &&
-                g == node.g &&
-                h == node.h &&
-                objective_distance == node.objective_distance &&
-                free_an_enemy == node.free_an_enemy &&
-                im_an_enemy == node.im_an_enemy &&
-                i_could_be_an_enemy == node.i_could_be_an_enemy &&
-                rock_on_top == node.rock_on_top &&
-                Objects.equals(parent, node.parent) &&
-                Objects.equals(children, node.children) &&
-                obs.equals(node.obs);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(parent, children, obs, f, g, h, objective_distance, free_an_enemy, im_an_enemy, i_could_be_an_enemy, rock_on_top);
-    }
-
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////// BFS /////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public ArrayList<Vector2d> expandToSand(ArrayList<Observation>[] enemies, StateObservation stateObs)
+    public ArrayList<String> expandToSand(ArrayList<Observation>[] enemies, StateObservation stateObs)
     {
         NodeComparator comparator = new NodeComparator();
         int max_x = stateObs.getObservationGrid().length;
         int max_y = stateObs.getObservationGrid()[0].length;
-        ArrayList<Vector2d> nodesColindantToEnemy = new ArrayList<Vector2d>();
+        ArrayList<String> nodesColindantToEnemy = new ArrayList<String>();
         boolean Visited[][] = new boolean[max_x][max_y];                               // CLOSED list
         PriorityQueue<Node> toVisit = new PriorityQueue<Node>(comparator);                // OPEN list
 
@@ -307,7 +279,8 @@ public class Node {
                 (n.getObs().getType() == ObservationType.GEM) ||
                 (n.getObs().getType() == ObservationType.WALL))
             {
-                nodesColindantToEnemy.add(new Vector2d(n.getObs().getX(), n.getObs().getY()));
+                String str = n.getObs().getX() + ":" + n.getObs().getY();
+                nodesColindantToEnemy.add(str);
             }
             else
             {
