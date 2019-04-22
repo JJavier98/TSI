@@ -18,7 +18,7 @@ import javax.swing.plaf.nimbus.State;
 public class JJavier extends BaseAgent{
     private ArrayList<Types.ACTIONS> lista_acciones; // Conjunto de acciones posibles
     private Random generador;
-    private ArrayList<Node> path = new ArrayList<Node>();
+    private LinkedList<Node> path = new LinkedList<Node>();
     private Queue<Types.ACTIONS> movements = new ArrayDeque<Types.ACTIONS>();
     Set<String> nodesAdjacentToEnemy = new HashSet<String>();
     boolean keep_out = false;
@@ -115,7 +115,6 @@ public class JJavier extends BaseAgent{
 			}
 
 			if (roundAnEnemy(next_x, next_y, stateObs) || isAnEnemy(next_x, next_y, stateObs) ) {
-                //System.out.println("zsijkdfb");
 				movements.clear();
 				path.clear();
 				action_to_do = Types.ACTIONS.ACTION_NIL;
@@ -144,10 +143,10 @@ public class JJavier extends BaseAgent{
     						}
                         //}
 					}
-                    path = new ArrayList<Node>();
+                    path = new LinkedList<Node>();
 					path = pathFinding(chosen_gem, stateObs);
 					gems.remove(chosen_gem);
-					if (!path.isEmpty()) {
+					if (path != null) {
 						fin = true;
                     }
 				}
@@ -157,20 +156,19 @@ public class JJavier extends BaseAgent{
                 path = pathFinding(getExit(stateObs), stateObs);
             }
 
-            if(path.isEmpty())
+            if(path == null)
             {
-                path = new ArrayList<Node>();
+                path = new LinkedList<Node>();
                 path = openPath(stateObs);
             }
 
-            if(path.isEmpty()) {
-				path = new ArrayList<Node>();
+            if(path == null) {
+				path = new LinkedList<Node>();
             }
 		}
 
-        if(keep_out)
+        /*if(keep_out)
         {
-            System.out.println("difjv");
             Node n_next = path.get(0);
             int x_player = getPlayer(stateObs).getX();
 			int y_player = getPlayer(stateObs).getY();
@@ -221,7 +219,7 @@ public class JJavier extends BaseAgent{
 					}
 				}
 			}
-        }
+        }*/
 
 		if(movements.isEmpty() && !path.isEmpty())
 		{
@@ -527,25 +525,23 @@ public class JJavier extends BaseAgent{
             return action_to_do;
         }
         else {
-            System.out.println("kzshjd");
             path.clear();
             movements.clear();
             return Types.ACTIONS.ACTION_NIL;
         }
     }
 
-    public ArrayList<Node> openPath(StateObservation stateObs)
+    public LinkedList<Node> openPath(StateObservation stateObs)
     {
         NodeComparator comparator = new NodeComparator();
         int max_x = stateObs.getObservationGrid().length;
         int max_y = stateObs.getObservationGrid()[0].length;
         ArrayList<Observation>[] enemies = getEnemiesList(stateObs);
-        Node n_fin = new Node();
-
-        Node n_inicial = new Node(getPlayer(stateObs).getX(), getPlayer(stateObs).getY(), 0, null, null, nodesAdjacentToEnemy, enemies,  stateObs);
-
         Node[][] Visited = new Node[max_x][max_y];                           // CLOSED list
         PriorityQueue<Node> toVisit = new PriorityQueue<Node>(comparator);   // OPEN list
+
+        Node n_fin = new Node();
+        Node n_inicial = new Node(getPlayer(stateObs).getX(), getPlayer(stateObs).getY(), 0, null, null, nodesAdjacentToEnemy, enemies,  stateObs);
 
         toVisit.add(n_inicial);
 
@@ -554,8 +550,7 @@ public class JJavier extends BaseAgent{
         {
             Node n_current = toVisit.poll();
 
-            if( n_current.isRock_on_top())
-            {
+            if( n_current.isRock_on_top()) {
                 n_fin = new Node(n_current);
                 objectiveFound = true;
             }
@@ -565,15 +560,15 @@ public class JJavier extends BaseAgent{
                 int x = n_current.getObs().getX()+1;
                 int y = n_current.getObs().getY();
                 if( x < max_x )
-                    if( stateObs.getObservationGrid()[x][y].size() > 0 )
+                    if( stateObs.getObservationGrid()[x][y].size() > 0 ) {
                         if( stateObs.getObservationGrid()[x][y].get(0).itype != 0 &&
-                            stateObs.getObservationGrid()[x][y].get(0).itype != 7)
+                            stateObs.getObservationGrid()[x][y].get(0).itype != 7 &&
+                            !(getRemainingGems(stateObs) == 0 && stateObs.getObservationGrid()[x][y].get(0).itype == 6))
                         {
                             if(Visited[x][y] == null)
                             {
                                 Node child = new Node(x, y, n_current.getG()+1, n_current, null, nodesAdjacentToEnemy, enemies, stateObs);
                                 toVisit.add(child);
-                                //n_current.addChildren(child);
                             }
                             else
                             {
@@ -581,7 +576,20 @@ public class JJavier extends BaseAgent{
                                 if(Visited[x][y].getF() > child.getF())
                                 {
                                     toVisit.add(child);
-                                    //n_current.addChildren(child);
+                                }
+                            }
+                        }
+                    }
+                    else if( stateObs.getObservationGrid()[x][y].size() > 0 )
+                        if(stateObs.getObservationGrid()[x][y-1].get(0).itype != 7) {
+                            if(Visited[x][y] == null) {
+                                Node child = new Node(x, y, n_current.getG()+1, n_current, null, nodesAdjacentToEnemy, enemies, stateObs);
+                                toVisit.add(child);
+                            }
+                            else {
+                                Node child = new Node(x, y, n_current.getG()+1, n_current, null, nodesAdjacentToEnemy, enemies, stateObs);
+                                if(Visited[x][y].getF() > child.getF()) {
+                                    toVisit.add(child);
                                 }
                             }
                         }
@@ -590,15 +598,15 @@ public class JJavier extends BaseAgent{
                 x = n_current.getObs().getX();
                 y = n_current.getObs().getY()-1;
                 if( y >= 0 )
-                    if( stateObs.getObservationGrid()[x][y].size() > 0 )
+                    if( stateObs.getObservationGrid()[x][y].size() > 0 ) {
                         if( stateObs.getObservationGrid()[x][y].get(0).itype != 0 &&
-                            stateObs.getObservationGrid()[x][y].get(0).itype != 7)
+                            stateObs.getObservationGrid()[x][y].get(0).itype != 7 &&
+                            !(getRemainingGems(stateObs) == 0 && stateObs.getObservationGrid()[x][y].get(0).itype == 6))
                         {
                             if(Visited[x][y] == null)
                             {
                                 Node child = new Node(x, y, n_current.getG()+1, n_current, null, nodesAdjacentToEnemy, enemies, stateObs);
                                 toVisit.add(child);
-                                //n_current.addChildren(child);
                             }
                             else
                             {
@@ -606,7 +614,20 @@ public class JJavier extends BaseAgent{
                                 if(Visited[x][y].getF() > child.getF())
                                 {
                                     toVisit.add(child);
-                                    //n_current.addChildren(child);
+                                }
+                            }
+                        }
+                    }
+                    else if( stateObs.getObservationGrid()[x][y].size() > 0 )
+                        if(stateObs.getObservationGrid()[x][y-1].get(0).itype != 7) {
+                            if(Visited[x][y] == null) {
+                                Node child = new Node(x, y, n_current.getG()+1, n_current, null, nodesAdjacentToEnemy, enemies, stateObs);
+                                toVisit.add(child);
+                            }
+                            else {
+                                Node child = new Node(x, y, n_current.getG()+1, n_current, null, nodesAdjacentToEnemy, enemies, stateObs);
+                                if(Visited[x][y].getF() > child.getF()) {
+                                    toVisit.add(child);
                                 }
                             }
                         }
@@ -615,15 +636,15 @@ public class JJavier extends BaseAgent{
                 x = n_current.getObs().getX()-1;
                 y = n_current.getObs().getY();
                 if( x >= 0 )
-                    if( stateObs.getObservationGrid()[x][y].size() > 0 )
+                    if( stateObs.getObservationGrid()[x][y].size() > 0 ) {
                         if( stateObs.getObservationGrid()[x][y].get(0).itype != 0 &&
-                            stateObs.getObservationGrid()[x][y].get(0).itype != 7)
+                            stateObs.getObservationGrid()[x][y].get(0).itype != 7 &&
+                            !(getRemainingGems(stateObs) == 0 && stateObs.getObservationGrid()[x][y].get(0).itype == 6))
                         {
                             if(Visited[x][y] == null)
                             {
                                 Node child = new Node(x, y, n_current.getG()+1, n_current, null, nodesAdjacentToEnemy, enemies, stateObs);
                                 toVisit.add(child);
-                                //n_current.addChildren(child);
                             }
                             else
                             {
@@ -631,7 +652,20 @@ public class JJavier extends BaseAgent{
                                 if(Visited[x][y].getF() > child.getF())
                                 {
                                     toVisit.add(child);
-                                    //n_current.addChildren(child);
+                                }
+                            }
+                        }
+                    }
+                    else if( stateObs.getObservationGrid()[x][y].size() > 0 )
+                        if(stateObs.getObservationGrid()[x][y-1].get(0).itype != 7) {
+                            if(Visited[x][y] == null) {
+                                Node child = new Node(x, y, n_current.getG()+1, n_current, null, nodesAdjacentToEnemy, enemies, stateObs);
+                                toVisit.add(child);
+                            }
+                            else {
+                                Node child = new Node(x, y, n_current.getG()+1, n_current, null, nodesAdjacentToEnemy, enemies, stateObs);
+                                if(Visited[x][y].getF() > child.getF()) {
+                                    toVisit.add(child);
                                 }
                             }
                         }
@@ -640,15 +674,15 @@ public class JJavier extends BaseAgent{
                 x = n_current.getObs().getX();
                 y = n_current.getObs().getY()+1;
                 if( y < max_y )
-                    if( stateObs.getObservationGrid()[x][y].size() > 0 )
+                    if( stateObs.getObservationGrid()[x][y].size() > 0 ) {
                         if( stateObs.getObservationGrid()[x][y].get(0).itype != 0 &&
-                            stateObs.getObservationGrid()[x][y].get(0).itype != 7)
+                            stateObs.getObservationGrid()[x][y].get(0).itype != 7 &&
+                            !(getRemainingGems(stateObs) == 0 && stateObs.getObservationGrid()[x][y].get(0).itype == 6))
                         {
                             if(Visited[x][y] == null)
                             {
                                 Node child = new Node(x, y, n_current.getG()+1, n_current, null, nodesAdjacentToEnemy, enemies, stateObs);
                                 toVisit.add(child);
-                                //n_current.addChildren(child);
                             }
                             else
                             {
@@ -656,7 +690,20 @@ public class JJavier extends BaseAgent{
                                 if(Visited[x][y].getF() > child.getF())
                                 {
                                     toVisit.add(child);
-                                    //n_current.addChildren(child);
+                                }
+                            }
+                        }
+                    }
+                    else if( stateObs.getObservationGrid()[x][y].size() > 0 )
+                        if(stateObs.getObservationGrid()[x][y-1].get(0).itype != 7) {
+                            if(Visited[x][y] == null) {
+                                Node child = new Node(x, y, n_current.getG()+1, n_current, null, nodesAdjacentToEnemy, enemies, stateObs);
+                                toVisit.add(child);
+                            }
+                            else {
+                                Node child = new Node(x, y, n_current.getG()+1, n_current, null, nodesAdjacentToEnemy, enemies, stateObs);
+                                if(Visited[x][y].getF() > child.getF()) {
+                                    toVisit.add(child);
                                 }
                             }
                         }
@@ -672,30 +719,21 @@ public class JJavier extends BaseAgent{
             //int n = sc.nextInt();
         }
 
-        Deque<Node> stack = new ArrayDeque<Node>();
         if(objectiveFound) {
             Node aux = new Node(n_fin);
 
             while (aux.getParent() != null) {
-                stack.push(aux);
+                path.addFirst(aux);
                 aux = aux.getParent();
             }
 
-            while (!stack.isEmpty()) {
-                Node n = stack.pop();
-                path.add(n);
-                if(n.isFree_an_enemy())
-                    new_adjacent = true;
-            }
             return path;
         }
-        else {
-            path = new ArrayList<Node>();
-            return path;
-        }
+        else
+            return null;
     }
     
-    public ArrayList<Node> pathFinding(Observation objective, StateObservation stateObs)
+    public LinkedList<Node> pathFinding(Observation objective, StateObservation stateObs)
     {
         NodeComparator comparator = new NodeComparator();
         int max_x = stateObs.getObservationGrid().length;
@@ -717,7 +755,7 @@ public class JJavier extends BaseAgent{
             Node n_current = toVisit.poll();
 
             if( n_current.getObs().getX() == objective.getX()  &&
-                n_current.getObs().getY() == objective.getY())
+                n_current.getObs().getY() == objective.getY() )
             {
                 n_fin = new Node(n_current);
                 objectiveFound = true;
@@ -730,13 +768,13 @@ public class JJavier extends BaseAgent{
                 if( x < max_x )
                     if( stateObs.getObservationGrid()[x][y].size() > 0 ) {
                         if( stateObs.getObservationGrid()[x][y].get(0).itype != 0 &&
-                            stateObs.getObservationGrid()[x][y].get(0).itype != 7)
+                            stateObs.getObservationGrid()[x][y].get(0).itype != 7 &&
+                            !(getRemainingGems(stateObs) == 0 && stateObs.getObservationGrid()[x][y].get(0).itype == 6))
                         {
                             if(Visited[x][y] == null)
                             {
                                 Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
                                 toVisit.add(child);
-                                //n_current.addChildren(child);
                             }
                             else
                             {
@@ -744,7 +782,6 @@ public class JJavier extends BaseAgent{
                                 if(Visited[x][y].getF() > child.getF())
                                 {
                                     toVisit.add(child);
-                                    //n_current.addChildren(child);
                                 }
                             }
                         }
@@ -754,7 +791,6 @@ public class JJavier extends BaseAgent{
                         {
                             Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
                             toVisit.add(child);
-                            //n_current.addChildren(child);
                         }
                         else
                         {
@@ -762,7 +798,6 @@ public class JJavier extends BaseAgent{
                             if(Visited[x][y].getF() > child.getF())
                             {
                                 toVisit.add(child);
-                                //n_current.addChildren(child);
                             }
                         }
                     }
@@ -773,13 +808,13 @@ public class JJavier extends BaseAgent{
                 if( y >= 0 )
                     if( stateObs.getObservationGrid()[x][y].size() > 0 ) {
                         if( stateObs.getObservationGrid()[x][y].get(0).itype != 0 &&
-                            stateObs.getObservationGrid()[x][y].get(0).itype != 7)
+                            stateObs.getObservationGrid()[x][y].get(0).itype != 7 &&
+                            !(getRemainingGems(stateObs) == 0 && stateObs.getObservationGrid()[x][y].get(0).itype == 6))
                         {
                             if(Visited[x][y] == null)
                             {
                                 Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
                                 toVisit.add(child);
-                                //n_current.addChildren(child);
                             }
                             else
                             {
@@ -787,7 +822,6 @@ public class JJavier extends BaseAgent{
                                 if(Visited[x][y].getF() > child.getF())
                                 {
                                     toVisit.add(child);
-                                    //n_current.addChildren(child);
                                 }
                             }
                         }
@@ -797,7 +831,6 @@ public class JJavier extends BaseAgent{
                         {
                             Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
                             toVisit.add(child);
-                            //n_current.addChildren(child);
                         }
                         else
                         {
@@ -805,7 +838,6 @@ public class JJavier extends BaseAgent{
                             if(Visited[x][y].getF() > child.getF())
                             {
                                 toVisit.add(child);
-                                //n_current.addChildren(child);
                             }
                         }
                     }
@@ -816,13 +848,13 @@ public class JJavier extends BaseAgent{
                 if( x >= 0 )
                     if( stateObs.getObservationGrid()[x][y].size() > 0 ) {
                         if( stateObs.getObservationGrid()[x][y].get(0).itype != 0 &&
-                            stateObs.getObservationGrid()[x][y].get(0).itype != 7)
+                            stateObs.getObservationGrid()[x][y].get(0).itype != 7 &&
+                            !(getRemainingGems(stateObs) == 0 && stateObs.getObservationGrid()[x][y].get(0).itype == 6))
                         {
                             if(Visited[x][y] == null)
                             {
                                 Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
                                 toVisit.add(child);
-                                //n_current.addChildren(child);
                             }
                             else
                             {
@@ -830,7 +862,6 @@ public class JJavier extends BaseAgent{
                                 if(Visited[x][y].getF() > child.getF())
                                 {
                                     toVisit.add(child);
-                                    //n_current.addChildren(child);
                                 }
                             }
                         }
@@ -840,7 +871,6 @@ public class JJavier extends BaseAgent{
                         {
                             Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
                             toVisit.add(child);
-                            //n_current.addChildren(child);
                         }
                         else
                         {
@@ -848,7 +878,6 @@ public class JJavier extends BaseAgent{
                             if(Visited[x][y].getF() > child.getF())
                             {
                                 toVisit.add(child);
-                                //n_current.addChildren(child);
                             }
                         }
                     }
@@ -859,13 +888,13 @@ public class JJavier extends BaseAgent{
                 if( y < max_y )
                     if( stateObs.getObservationGrid()[x][y].size() > 0 ) {
                         if( stateObs.getObservationGrid()[x][y].get(0).itype != 0 &&
-                            stateObs.getObservationGrid()[x][y].get(0).itype != 7)
+                            stateObs.getObservationGrid()[x][y].get(0).itype != 7 &&
+                            !(getRemainingGems(stateObs) == 0 && stateObs.getObservationGrid()[x][y].get(0).itype == 6))
                         {
                             if(Visited[x][y] == null)
                             {
                                 Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
                                 toVisit.add(child);
-                                //n_current.addChildren(child);
                             }
                             else
                             {
@@ -873,7 +902,6 @@ public class JJavier extends BaseAgent{
                                 if(Visited[x][y].getF() > child.getF())
                                 {
                                     toVisit.add(child);
-                                    //n_current.addChildren(child);
                                 }
                             }
                         }
@@ -883,7 +911,6 @@ public class JJavier extends BaseAgent{
                         {
                             Node child = new Node(x, y, n_current.getG()+1, n_current, objective, nodesAdjacentToEnemy, enemies, stateObs);
                             toVisit.add(child);
-                            //n_current.addChildren(child);
                         }
                         else
                         {
@@ -891,7 +918,6 @@ public class JJavier extends BaseAgent{
                             if(Visited[x][y].getF() > child.getF())
                             {
                                 toVisit.add(child);
-                                //n_current.addChildren(child);
                             }
                         }
                     }
@@ -909,22 +935,16 @@ public class JJavier extends BaseAgent{
 
 		Deque<Node> stack = new ArrayDeque<Node>();
 		if(objectiveFound) {
-			Node aux = new Node(n_fin);
+        	Node aux = new Node(n_fin);
 
-			while (aux.getParent() != null) {
-				stack.push(aux);
-				aux = aux.getParent();
-			}
+        	while (aux.getParent() != null) {
+        		path.addFirst(aux);
+        		aux = aux.getParent();
+        	}
 
-			while (!stack.isEmpty()) {
-				Node n = stack.pop();
-				path.add(n);
-			}
-			return path;
+        	return path;
 		}
-        else {
-            path = new ArrayList<Node>();
-            return path;
-        }
+        else
+            return null;
     }
 }

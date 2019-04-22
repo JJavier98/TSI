@@ -9,7 +9,6 @@ import java.util.*;
 
 public class Node {
     private Node parent;                // parent of the current node
-    private ArrayList<Node> children;   // children of the current node
     private Observation obs;            // coordinates and type
 
     private int f; // Total cost
@@ -90,9 +89,9 @@ public class Node {
                 im_an_enemy)
             h += 90;
         if(rock_on_top)
-            h += 5;
+            h += 50;
         if(free_an_enemy || i_could_be_an_enemy)
-            h += 20;
+            h += 50;
         f = g+h;
         parent = _parent;
     }
@@ -104,7 +103,6 @@ public class Node {
         h = n.h;
         f = n.f;
         parent = n.parent;
-        children = n.children;
         rock_on_top = n.rock_on_top;
         i_could_be_an_enemy = n.i_could_be_an_enemy;
         free_an_enemy = n.free_an_enemy;
@@ -150,8 +148,6 @@ public class Node {
         return parent;
     }
 
-    public ArrayList<Node> getChildren() { return children; }
-
     public Observation getObs() { return obs; }
 
     public int getF() { return f; }
@@ -192,14 +188,6 @@ public class Node {
         this.parent = parent;
     }
 
-    public void setChildren(ArrayList<Node> children) {
-        this.children = children;
-    }
-
-    public void addChildren(Node child) {
-        children.add(child);
-    }
-
     public void setObs(Observation obs) { this.obs = obs; }
 
     public void setF(int f) {
@@ -224,12 +212,12 @@ public class Node {
 
     public void setFree_an_enemy(boolean free_an_enemy) {
         if(this.free_an_enemy)
-            h = h-20;
+            h = h-50;
 
         this.free_an_enemy = free_an_enemy;
 
         if(this.free_an_enemy)
-            h = h+20;
+            h = h+50;
     }
 
     public void setIm_an_enemy(boolean im_an_enemy) {
@@ -244,12 +232,12 @@ public class Node {
 
     public void setI_could_be_an_enemy(boolean i_could_be_an_enemy) {
         if(this.i_could_be_an_enemy)
-            h = h-20;
+            h = h-50;
 
         this.i_could_be_an_enemy = i_could_be_an_enemy;
 
         if(this.i_could_be_an_enemy)
-            h = h+20;
+            h = h+50;
     }
 
     public void setRock_on_top(boolean rock_on_top) {
